@@ -1,16 +1,17 @@
 package uk.co.urbanfortress.aws;
 
-import java.io.BufferedReader;
+import java.io.Console;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.List;
 import java.util.Properties;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -33,33 +34,41 @@ public class AutomationRunner implements CommandLineRunner {
 	@Override
 	public void run(String... args) throws Exception {
 		Option usernameOption = new Option("u", "username", true, "sso username");
+		usernameOption.setRequired(true);
 		Option portalUrlOption = new Option("s", "ssoportal", true, "sso portal url");
+		portalUrlOption.setRequired(true);
 		Option credentialsFileOption = new Option("c", "credentials", true, "aws credentials file");
+		credentialsFileOption.setRequired(true);
 		Option passwordOption = new Option("p", "password", true, "sso password");
 		passwordOption.setRequired(false);
 
 		Options options = new Options().addOption(usernameOption).addOption(portalUrlOption)
 				.addOption(credentialsFileOption).addOption(passwordOption);
 
-		CommandLine cmd = parser.parse(options, args);
+		try {
+			CommandLine cmd = parser.parse(options, args);
 
-		String password = cmd.getOptionValue(passwordOption.getOpt());
-		if (password == null) {
-			password = getPassword();
+			String password = cmd.getOptionValue(passwordOption.getOpt());
+			if (password == null) {
+				password = getPassword();
+			}
+			String portalUrl = cmd.getOptionValue(portalUrlOption.getOpt());
+			String username = cmd.getOptionValue(usernameOption.getOpt());
+			String credentialsFile = cmd.getOptionValue(credentialsFileOption.getOpt());
+
+			List<Properties> credentailsCollection = credentialsRetriever.retrieveAllCredentials(username, password,
+					portalUrl);
+
+			credentialsWriter.writeAllCredentials(credentialsFile, credentailsCollection);
+		} catch (ParseException exp) {
+			HelpFormatter formatter = new HelpFormatter();
+			formatter.printHelp("credentials", options);
 		}
-		String portalUrl = cmd.getOptionValue(portalUrlOption.getOpt());
-		String username = cmd.getOptionValue(usernameOption.getOpt());
-		String credentialsFile = cmd.getOptionValue(credentialsFileOption.getOpt());
-
-		List<Properties> credentailsCollection = credentialsRetriever.retrieveAllCredentials(username, password,
-				portalUrl);
-
-		credentialsWriter.writeAllCredentials(credentialsFile, credentailsCollection);
 	}
 
 	private String getPassword() throws IOException {
-		BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-		String password = reader.readLine();
-		return password;
+		Console console = System.console();
+		char[] passwordArray = console.readPassword("Enter your secret password: ");
+		return new String(passwordArray);
 	}
 }
