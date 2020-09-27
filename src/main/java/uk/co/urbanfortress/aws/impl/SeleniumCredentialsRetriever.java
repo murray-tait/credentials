@@ -29,7 +29,7 @@ import uk.co.urbanfortress.aws.DriverFactory;
 import uk.co.urbanfortress.aws.ElementLocators;
 
 @Component
-public class SeleniumCredentialsRetriever implements CredentialsRetriever, ElementLocators  {
+public class SeleniumCredentialsRetriever implements CredentialsRetriever, ElementLocators {
 
 	private DriverFactory driverFactory;
 	private ClipboardFactory clipboardFactory;
@@ -40,9 +40,11 @@ public class SeleniumCredentialsRetriever implements CredentialsRetriever, Eleme
 	}
 
 	public List<Properties> retrieveAllCredentials(String username, String password, String portalUrl) {
+		List<Properties> credentailsCollection = new LinkedList<Properties>();
+
 		WebDriver driver = driverFactory.getDriver();
 		JavascriptExecutor js = driverFactory.getJavascriptExecutor();
-		
+
 		Wait<WebDriver> wait = new FluentWait<WebDriver>(driver).withTimeout(Duration.of(50L, ChronoUnit.SECONDS))
 				.pollingEvery(Duration.of(3, ChronoUnit.SECONDS)).ignoring(NoSuchElementException.class);
 
@@ -56,42 +58,52 @@ public class SeleniumCredentialsRetriever implements CredentialsRetriever, Eleme
 		driver.findElement(PASSWORD_LOCATOR).sendKeys(password);
 		driver.findElement(LOGIN_BUTTON_LOCATOR).click();
 
-		wait.until(ExpectedConditions.presenceOfElementLocated(APP_ELEMENT_LOCATOR)).click();
-		wait.until(isTrue(!driver.findElements(INSTANCE_BLOCKS_LOCATOR).isEmpty()));
+		wait.until(ExpectedConditions.or(ExpectedConditions.presenceOfElementLocated(APP_ELEMENT_LOCATOR),
+				ExpectedConditions.presenceOfElementLocated(ALERT_LOCATOR)));
 
-		List<WebElement> instanceBlocks = driver.findElements(INSTANCE_BLOCKS_LOCATOR);
-		List<Properties> credentailsCollection = new LinkedList<Properties>();
+		try {
+			if (driver.findElements(ALERT_LOCATOR).size() != 0) {
+				String message = driver.findElement(ERROR_MESSAGE_LOCATOR).getText();
+				throw new ApplicationException(message);
+			} else {
+				driver.findElement(APP_ELEMENT_LOCATOR).click();
+				wait.until(isTrue(!driver.findElements(INSTANCE_BLOCKS_LOCATOR).isEmpty()));
 
-		for (WebElement instanceBlock : instanceBlocks) {
-			instanceBlock.click();
+				List<WebElement> instanceBlocks = driver.findElements(INSTANCE_BLOCKS_LOCATOR);
 
-			pause(Duration.of(1L, ChronoUnit.SECONDS));
+				for (WebElement instanceBlock : instanceBlocks) {
+					instanceBlock.click();
 
-			wait.until(ExpectedConditions.presenceOfElementLocated(PROFILE_NAME_LOCATION));
-			wait.until(isTrue(!driver.findElements(CREDS_LINKS_LOCATOR).isEmpty()));
+					pause(Duration.of(1L, ChronoUnit.SECONDS));
 
-			List<WebElement> credsLinks = driver.findElements(CREDS_LINKS_LOCATOR);
+					wait.until(ExpectedConditions.presenceOfElementLocated(PROFILE_NAME_LOCATION));
+					wait.until(isTrue(!driver.findElements(CREDS_LINKS_LOCATOR).isEmpty()));
 
-			for (WebElement credsLink : credsLinks) {
-				credsLink.click();
+					List<WebElement> credsLinks = driver.findElements(CREDS_LINKS_LOCATOR);
 
-				wait.until(ExpectedConditions.presenceOfElementLocated(HOVER_COPY_LOCATOR)).click();
+					for (WebElement credsLink : credsLinks) {
+						credsLink.click();
 
-				String credentialsString = getClipboardContents();
+						wait.until(ExpectedConditions.presenceOfElementLocated(HOVER_COPY_LOCATOR)).click();
 
-				final Properties properties = convertToProperties(credentialsString);
-				credentailsCollection.add(properties);
+						String credentialsString = getClipboardContents();
 
-				driver.findElement(CLOSER_LOCATOR).click();
+						final Properties properties = convertToProperties(credentialsString);
+						credentailsCollection.add(properties);
+
+						driver.findElement(CLOSER_LOCATOR).click();
+					}
+
+					instanceBlock.click();
+				}
 			}
-
-			instanceBlock.click();
+		} finally {
+			driver.close();
 		}
-		driver.close();
-		
+
 		return credentailsCollection;
 	}
-	
+
 	private Properties convertToProperties(String credentialsString) {
 		final Properties properties = new Properties();
 		try {

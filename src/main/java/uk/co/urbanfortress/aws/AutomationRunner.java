@@ -63,7 +63,10 @@ public class AutomationRunner implements CommandLineRunner {
 		} catch (ParseException exp) {
 			HelpFormatter formatter = new HelpFormatter();
 			formatter.printHelp("credentials", options);
-		}
+		} catch (ApplicationException exp) {
+			System.err.print(exp.getMessage());
+			throw exp; 
+ 		}
 	}
 
 	private String getPassword() throws IOException {

@@ -122,6 +122,7 @@ class SeleniumCredentialsRetrieverTest implements ElementLocators {
 		whenSignin();
 
 		when(driver.findElement(APP_ELEMENT_LOCATOR)).thenReturn(appElement);
+		when(driver.findElements(ALERT_LOCATOR)).thenReturn(new LinkedList<WebElement>());
 		when(driver.findElements(INSTANCE_BLOCKS_LOCATOR)).thenReturn(instanceBlocks);
 		when(driver.findElement(PROFILE_NAME_LOCATION)).thenReturn(profileName);
 		when(driver.findElements(CREDS_LINKS_LOCATOR)).thenReturn(credsLinks);
@@ -139,7 +140,8 @@ class SeleniumCredentialsRetrieverTest implements ElementLocators {
 		verifySignin();
 
 		verify(appElement).click();
-		verify(driver).findElement(APP_ELEMENT_LOCATOR);
+		verify(driver, times(2)).findElement(APP_ELEMENT_LOCATOR);
+		verify(driver).findElements(ALERT_LOCATOR);
 		verify(driver, times(2)).findElements(INSTANCE_BLOCKS_LOCATOR);
 		verify(instanceBlock, times(2)).click();
 		verify(driver).findElement(PROFILE_NAME_LOCATION);

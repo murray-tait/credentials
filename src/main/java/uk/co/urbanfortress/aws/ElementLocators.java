@@ -12,4 +12,6 @@ public interface ElementLocators {
 	static final By INSTANCE_BLOCKS_LOCATOR = By.className("instance-block");
 	static final By CREDS_LINKS_LOCATOR = By.className("creds-link");
 	static final By PROFILE_NAME_LOCATION = By.id("profile-name");
+	static final By ALERT_LOCATOR = By.id("alertFrame");
+	static final By ERROR_MESSAGE_LOCATOR = By.className("gwt-Label");
 }
