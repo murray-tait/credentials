@@ -141,7 +141,6 @@ class SeleniumCredentialsRetrieverTest implements ElementLocators {
 
 		verify(appElement).click();
 		verify(driver, times(2)).findElement(APP_ELEMENT_LOCATOR);
-		verify(driver).findElements(ALERT_LOCATOR);
 		verify(driver, times(2)).findElements(INSTANCE_BLOCKS_LOCATOR);
 		verify(instanceBlock, times(2)).click();
 		verify(driver).findElement(PROFILE_NAME_LOCATION);

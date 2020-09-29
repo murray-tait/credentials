@@ -45,7 +45,7 @@ public class SeleniumCredentialsRetriever implements CredentialsRetriever, Eleme
 		WebDriver driver = driverFactory.getDriver();
 		JavascriptExecutor js = driverFactory.getJavascriptExecutor();
 
-		Wait<WebDriver> wait = new FluentWait<WebDriver>(driver).withTimeout(Duration.of(50L, ChronoUnit.SECONDS))
+		Wait<WebDriver> wait = new FluentWait<WebDriver>(driver).withTimeout(Duration.of(5L, ChronoUnit.SECONDS))
 				.pollingEvery(Duration.of(3, ChronoUnit.SECONDS)).ignoring(NoSuchElementException.class);
 
 		driver.get(portalUrl);
@@ -58,11 +58,15 @@ public class SeleniumCredentialsRetriever implements CredentialsRetriever, Eleme
 		driver.findElement(PASSWORD_LOCATOR).sendKeys(password);
 		driver.findElement(LOGIN_BUTTON_LOCATOR).click();
 
-		wait.until(ExpectedConditions.or(ExpectedConditions.presenceOfElementLocated(APP_ELEMENT_LOCATOR),
-				ExpectedConditions.presenceOfElementLocated(ALERT_LOCATOR)));
+		boolean appElementFound = true; 
+		try {
+			wait.until(ExpectedConditions.presenceOfElementLocated(APP_ELEMENT_LOCATOR));
+		} catch (Throwable t) {
+			appElementFound = false;
+		}
 
 		try {
-			if (driver.findElements(ALERT_LOCATOR).size() != 0) {
+			if (!appElementFound) {
 				String message = driver.findElement(ERROR_MESSAGE_LOCATOR).getText();
 				throw new ApplicationException(message);
 			} else {
