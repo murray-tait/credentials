@@ -1,8 +1,12 @@
 package uk.co.urbanfortress.aws.impl;
 
+import java.util.logging.Level;
+
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeDriverService;
+import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.edge.EdgeDriver;
 import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.ie.InternetExplorerDriver;
@@ -29,6 +33,7 @@ public class DefaultDriverFactory implements DriverFactory {
 	@Override
 	public WebDriver getDriver() {
 		if (driver == null) {
+			
 			switch (browser) {
 			case "firefox":
 				System.setProperty("webdriver.gecko.driver", driverFile);
@@ -49,8 +54,13 @@ public class DefaultDriverFactory implements DriverFactory {
 				driver = new OperaDriver();
 				break;
 			default:
+				ChromeOptions chromeOptions = new ChromeOptions();
+				chromeOptions.addArguments("--silent");
+				java.util.logging.Logger.getLogger("org.openqa.selenium").setLevel(Level.SEVERE);
+				
 				System.setProperty("webdriver.chrome.driver", driverFile);
-				driver = new ChromeDriver();
+				System.setProperty(ChromeDriverService.CHROME_DRIVER_SILENT_OUTPUT_PROPERTY, "true"); 
+				driver = new ChromeDriver(chromeOptions);
 				break;
 			}
 		}
