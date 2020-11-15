@@ -2,6 +2,7 @@ package uk.co.urbanfortress.aws.impl;
 
 import java.awt.HeadlessException;
 import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.io.IOException;
 import java.io.StringReader;
@@ -54,10 +55,19 @@ public class SeleniumCredentialsRetriever implements CredentialsRetriever, Eleme
 		waitForPageReady(wait, js);
 
 		wait.until(ExpectedConditions.presenceOfElementLocated(USERNAME_LOCATOR)).sendKeys(username);
+		try {
+			driver.findElement(USERBNAME_SUBMIT_LOCATOR).click();
+			waitForPageReady(wait, js);
 
-		driver.findElement(PASSWORD_LOCATOR).sendKeys(password);
-		driver.findElement(LOGIN_BUTTON_LOCATOR).click();
+			wait.until(ExpectedConditions.presenceOfElementLocated(PASSWORD_LOCATOR)).sendKeys(password);
+			driver.findElement(PASSWORD_SUBMIT_LOCATOR).click();
 
+			waitForPageReady(wait, js);
+		} catch (NoSuchElementException e) {
+			driver.findElement(PASSWORD_LOCATOR).sendKeys(password);
+			driver.findElement(LOGIN_BUTTON_LOCATOR).click();
+		}
+		
 		boolean appElementFound = true; 
 		try {
 			wait.until(ExpectedConditions.presenceOfElementLocated(APP_ELEMENT_LOCATOR));
@@ -103,9 +113,25 @@ public class SeleniumCredentialsRetriever implements CredentialsRetriever, Eleme
 			}
 		} finally {
 			driver.close();
+			clearClipboard();
 		}
 
 		return credentailsCollection;
+	}
+
+	private void clearClipboard() {
+		clipboardFactory.clipboard().setContents(new Transferable() {
+		      public DataFlavor[] getTransferDataFlavors() {
+		        return new DataFlavor[0];
+		      }
+
+		      public boolean isDataFlavorSupported(DataFlavor flavor) {
+		        return false;
+		      }
+
+		      public Object getTransferData(DataFlavor flavor) throws UnsupportedFlavorException {
+		        throw new UnsupportedFlavorException(flavor);
+		      }}, null);
 	}
 
 	private Properties convertToProperties(String credentialsString) {

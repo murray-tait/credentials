@@ -1,10 +1,9 @@
 package uk.co.urbanfortress.aws;
 
-
-import static org.hamcrest.CoreMatchers.*;
-import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
+import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -12,6 +11,7 @@ import static org.mockito.Mockito.when;
 
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.Transferable;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
@@ -20,6 +20,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.openqa.selenium.Dimension;
@@ -34,7 +35,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import uk.co.urbanfortress.aws.impl.SeleniumCredentialsRetriever;
 
 @ExtendWith(SpringExtension.class)
-@SpringBootTest(properties = {"job.autorun.enabled=false"})
+@SpringBootTest(properties = { "job.autorun.enabled=false" })
 class SeleniumCredentialsRetrieverTest implements ElementLocators {
 
 	private static final String PORTAL_URL = "portalUrl";
@@ -66,10 +67,13 @@ class SeleniumCredentialsRetrieverTest implements ElementLocators {
 	private WebElement wdcUsername;
 
 	@Mock
+	private WebElement wdcUsernameSubmitButton;
+
+	@Mock
 	private WebElement wdcPassword;
 
 	@Mock
-	private WebElement wdcLoginButton;
+	private WebElement wdcPasswordSubmitButton;
 
 	@Mock
 	private WebElement appElement;
@@ -95,8 +99,8 @@ class SeleniumCredentialsRetrieverTest implements ElementLocators {
 	private List<WebElement> instanceBlocks;
 
 	private List<WebElement> credsLinks;
-	
-	@BeforeEach 
+
+	@BeforeEach
 	public void setUp() {
 		instanceBlocks = new LinkedList<>();
 		instanceBlocks.add(instanceBlock);
@@ -117,7 +121,7 @@ class SeleniumCredentialsRetrieverTest implements ElementLocators {
 		Properties expectedProperties = new Properties();
 		expectedProperties.setProperty("a", "1");
 		expectedProperties.setProperty("b", "2");
-		
+
 		whenBrowserStarts();
 		whenSignin();
 
@@ -145,11 +149,12 @@ class SeleniumCredentialsRetrieverTest implements ElementLocators {
 		verify(instanceBlock, times(2)).click();
 		verify(driver).findElement(PROFILE_NAME_LOCATION);
 		verify(driver, times(2)).findElements(CREDS_LINKS_LOCATOR);
-		
+
 		verify(credsLink).click();
-		verify(clipboardFactory).clipboard();
+		verify(clipboardFactory, times(2)).clipboard();
 		verify(clipboard).getData(DataFlavor.stringFlavor);
-		
+		verify(clipboard).setContents(ArgumentMatchers.any(Transferable.class), ArgumentMatchers.isNull());;
+
 		verify(driver).findElement(HOVER_COPY_LOCATOR);
 		verify(hoverCopyEnv).click();
 		verify(driver).findElement(CLOSER_LOCATOR);
@@ -158,19 +163,22 @@ class SeleniumCredentialsRetrieverTest implements ElementLocators {
 	}
 
 	private void verifySignin() {
-		verify(javascriptExecutor).executeScript("return document.readyState");
+		verify(javascriptExecutor, times(3)).executeScript("return document.readyState");
 		verify(driver).findElement(USERNAME_LOCATOR);
 		verify(wdcUsername).sendKeys(USERNAME);
+		verify(driver).findElement(USERBNAME_SUBMIT_LOCATOR);
+		verify(wdcUsernameSubmitButton).click();
 		verify(driver).findElement(PASSWORD_LOCATOR);
 		verify(wdcPassword).sendKeys(PASSWORD);
-		verify(driver).findElement(LOGIN_BUTTON_LOCATOR);
-		verify(wdcLoginButton).click();
+		verify(driver).findElement(PASSWORD_SUBMIT_LOCATOR);
+		verify(wdcPasswordSubmitButton).click();
 	}
 
 	private void whenSignin() {
 		when(driver.findElement(USERNAME_LOCATOR)).thenReturn(wdcUsername);
+		when(driver.findElement(USERBNAME_SUBMIT_LOCATOR)).thenReturn(wdcUsernameSubmitButton);
 		when(driver.findElement(PASSWORD_LOCATOR)).thenReturn(wdcPassword);
-		when(driver.findElement(LOGIN_BUTTON_LOCATOR)).thenReturn(wdcLoginButton);
+		when(driver.findElement(PASSWORD_SUBMIT_LOCATOR)).thenReturn(wdcPasswordSubmitButton);
 	}
 
 	private void verifyBrowserStarts() {
@@ -191,12 +199,11 @@ class SeleniumCredentialsRetrieverTest implements ElementLocators {
 		when(javascriptExecutor.executeScript("return document.readyState")).thenReturn("complete");
 	}
 
-	
 	@AfterEach
 	public void tearDown() {
 		verifyNoMoreInteractions(driverFactory, driver, javascriptExecutor, clipboardFactory, clipboard, options,
-				window, wdcUsername, wdcPassword, wdcLoginButton, appElement, instanceBlock, profileName, credsLink, 
-				hoverCopyEnv, closer);
+				window, wdcUsername, wdcUsernameSubmitButton, wdcPassword, wdcPasswordSubmitButton, appElement,
+				instanceBlock, profileName, credsLink, hoverCopyEnv, closer);
 	}
 
 }
