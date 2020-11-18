@@ -54,12 +54,12 @@ public class SeleniumCredentialsRetriever implements CredentialsRetriever, Eleme
 
 		waitForPageReady(wait, js);
 
-		wait.until(ExpectedConditions.presenceOfElementLocated(USERNAME_LOCATOR)).sendKeys(username);
 		try {
+			wait.until(ExpectedConditions.presenceOfElementLocated(NEW_USERNAME_LOCATOR)).sendKeys(username);
 			driver.findElement(USERBNAME_SUBMIT_LOCATOR).click();
 			waitForPageReady(wait, js);
 
-			wait.until(ExpectedConditions.presenceOfElementLocated(PASSWORD_LOCATOR)).sendKeys(password);
+			wait.until(ExpectedConditions.presenceOfElementLocated(NEW_PASSWORD_LOCATOR)).sendKeys(password);
 			driver.findElement(PASSWORD_SUBMIT_LOCATOR).click();
 
 			waitForPageReady(wait, js);

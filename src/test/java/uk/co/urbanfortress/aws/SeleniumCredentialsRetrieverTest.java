@@ -164,20 +164,20 @@ class SeleniumCredentialsRetrieverTest implements ElementLocators {
 
 	private void verifySignin() {
 		verify(javascriptExecutor, times(3)).executeScript("return document.readyState");
-		verify(driver).findElement(USERNAME_LOCATOR);
+		verify(driver).findElement(NEW_USERNAME_LOCATOR);
 		verify(wdcUsername).sendKeys(USERNAME);
 		verify(driver).findElement(USERBNAME_SUBMIT_LOCATOR);
 		verify(wdcUsernameSubmitButton).click();
-		verify(driver).findElement(PASSWORD_LOCATOR);
+		verify(driver).findElement(NEW_PASSWORD_LOCATOR);
 		verify(wdcPassword).sendKeys(PASSWORD);
 		verify(driver).findElement(PASSWORD_SUBMIT_LOCATOR);
 		verify(wdcPasswordSubmitButton).click();
 	}
 
 	private void whenSignin() {
-		when(driver.findElement(USERNAME_LOCATOR)).thenReturn(wdcUsername);
+		when(driver.findElement(NEW_USERNAME_LOCATOR)).thenReturn(wdcUsername);
 		when(driver.findElement(USERBNAME_SUBMIT_LOCATOR)).thenReturn(wdcUsernameSubmitButton);
-		when(driver.findElement(PASSWORD_LOCATOR)).thenReturn(wdcPassword);
+		when(driver.findElement(NEW_PASSWORD_LOCATOR)).thenReturn(wdcPassword);
 		when(driver.findElement(PASSWORD_SUBMIT_LOCATOR)).thenReturn(wdcPasswordSubmitButton);
 	}
 
