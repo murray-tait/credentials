@@ -20,4 +20,6 @@ public interface ElementLocators {
 	static final By PROFILE_NAME_LOCATION = By.id("profile-name");
 	static final By ALERT_LOCATOR = By.id("alertFrame");
 	static final By ERROR_MESSAGE_LOCATOR = By.className("gwt-Label");
+	
+  static final By CODE_LINK_LOCATOR = By.className("code-line");
 }

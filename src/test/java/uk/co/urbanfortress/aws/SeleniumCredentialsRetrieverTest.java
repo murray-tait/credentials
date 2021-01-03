@@ -9,9 +9,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.awt.datatransfer.Clipboard;
-import java.awt.datatransfer.DataFlavor;
-import java.awt.datatransfer.Transferable;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
@@ -20,7 +17,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.openqa.selenium.Dimension;
@@ -50,12 +46,6 @@ class SeleniumCredentialsRetrieverTest implements ElementLocators {
 
 	@Mock
 	private JavascriptExecutor javascriptExecutor;
-
-	@Mock
-	private ClipboardFactory clipboardFactory;
-
-	@Mock
-	private Clipboard clipboard;
 
 	@Mock
 	private Options options;
@@ -92,6 +82,12 @@ class SeleniumCredentialsRetrieverTest implements ElementLocators {
 
 	@Mock
 	private WebElement closer;
+	
+	@Mock
+	private WebElement codeLine1;
+	
+	@Mock
+	private WebElement codeLine2;
 
 	@InjectMocks
 	private SeleniumCredentialsRetriever credentialsRetriever;
@@ -99,6 +95,8 @@ class SeleniumCredentialsRetrieverTest implements ElementLocators {
 	private List<WebElement> instanceBlocks;
 
 	private List<WebElement> credsLinks;
+	
+	private List<WebElement> codeLines;
 
 	@BeforeEach
 	public void setUp() {
@@ -107,6 +105,10 @@ class SeleniumCredentialsRetrieverTest implements ElementLocators {
 
 		credsLinks = new LinkedList<>();
 		credsLinks.add(credsLink);
+		
+		codeLines = new LinkedList<>();
+		codeLines.add(codeLine1);
+		codeLines.add(codeLine2);
 	}
 
 	@Test
@@ -116,8 +118,6 @@ class SeleniumCredentialsRetrieverTest implements ElementLocators {
 
 	@Test
 	public void testRetrieveAllCredentials() throws Exception {
-		String clipBoardContent = "a=1\nb=2";
-
 		Properties expectedProperties = new Properties();
 		expectedProperties.setProperty("a", "1");
 		expectedProperties.setProperty("b", "2");
@@ -132,8 +132,9 @@ class SeleniumCredentialsRetrieverTest implements ElementLocators {
 		when(driver.findElements(CREDS_LINKS_LOCATOR)).thenReturn(credsLinks);
 		when(driver.findElement(HOVER_COPY_LOCATOR)).thenReturn(hoverCopyEnv);
 		when(driver.findElement(CLOSER_LOCATOR)).thenReturn(closer);
-		when(clipboardFactory.clipboard()).thenReturn(clipboard);
-		when(clipboard.getData(DataFlavor.stringFlavor)).thenReturn(clipBoardContent);
+		when(credsLink.findElements(CODE_LINK_LOCATOR)).thenReturn(codeLines);
+		when(codeLine1.getText()).thenReturn("a=1");
+		when(codeLine2.getText()).thenReturn("b=2");
 
 		List<Properties> allCredentials = credentialsRetriever.retrieveAllCredentials(USERNAME, PASSWORD, PORTAL_URL);
 
@@ -144,17 +145,17 @@ class SeleniumCredentialsRetrieverTest implements ElementLocators {
 		verifySignin();
 
 		verify(appElement).click();
-		verify(driver, times(2)).findElement(APP_ELEMENT_LOCATOR);
+		verify(driver, times(2)).findElement(APP_ELEMENT_LOCATOR);	
 		verify(driver, times(2)).findElements(INSTANCE_BLOCKS_LOCATOR);
 		verify(instanceBlock, times(2)).click();
 		verify(driver).findElement(PROFILE_NAME_LOCATION);
 		verify(driver, times(2)).findElements(CREDS_LINKS_LOCATOR);
+		verify(credsLink).findElements(CODE_LINK_LOCATOR);
+		verify(codeLine1).getText();
+		verify(codeLine2).getText();
 
 		verify(credsLink).click();
-		verify(clipboardFactory, times(2)).clipboard();
-		verify(clipboard).getData(DataFlavor.stringFlavor);
-		verify(clipboard).setContents(ArgumentMatchers.any(Transferable.class), ArgumentMatchers.isNull());;
-
+		
 		verify(driver).findElement(HOVER_COPY_LOCATOR);
 		verify(hoverCopyEnv).click();
 		verify(driver).findElement(CLOSER_LOCATOR);
@@ -201,7 +202,7 @@ class SeleniumCredentialsRetrieverTest implements ElementLocators {
 
 	@AfterEach
 	public void tearDown() {
-		verifyNoMoreInteractions(driverFactory, driver, javascriptExecutor, clipboardFactory, clipboard, options,
+		verifyNoMoreInteractions(driverFactory, driver, javascriptExecutor, options,
 				window, wdcUsername, wdcUsernameSubmitButton, wdcPassword, wdcPasswordSubmitButton, appElement,
 				instanceBlock, profileName, credsLink, hoverCopyEnv, closer);
 	}

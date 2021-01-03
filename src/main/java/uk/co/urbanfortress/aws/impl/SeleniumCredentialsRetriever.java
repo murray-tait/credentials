@@ -1,9 +1,5 @@
 package uk.co.urbanfortress.aws.impl;
 
-import java.awt.HeadlessException;
-import java.awt.datatransfer.DataFlavor;
-import java.awt.datatransfer.Transferable;
-import java.awt.datatransfer.UnsupportedFlavorException;
 import java.io.IOException;
 import java.io.StringReader;
 import java.time.Duration;
@@ -17,6 +13,7 @@ import org.openqa.selenium.Dimension;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebDriverException;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.FluentWait;
@@ -24,7 +21,6 @@ import org.openqa.selenium.support.ui.Wait;
 import org.springframework.stereotype.Component;
 
 import uk.co.urbanfortress.aws.ApplicationException;
-import uk.co.urbanfortress.aws.ClipboardFactory;
 import uk.co.urbanfortress.aws.CredentialsRetriever;
 import uk.co.urbanfortress.aws.DriverFactory;
 import uk.co.urbanfortress.aws.ElementLocators;
@@ -32,141 +28,123 @@ import uk.co.urbanfortress.aws.ElementLocators;
 @Component
 public class SeleniumCredentialsRetriever implements CredentialsRetriever, ElementLocators {
 
-	private DriverFactory driverFactory;
-	private ClipboardFactory clipboardFactory;
+  private DriverFactory driverFactory;
 
-	public SeleniumCredentialsRetriever(DriverFactory driverFactory, ClipboardFactory clipboardFactory) {
-		this.driverFactory = driverFactory;
-		this.clipboardFactory = clipboardFactory;
-	}
+  public SeleniumCredentialsRetriever(DriverFactory driverFactory) {
+    this.driverFactory = driverFactory;
+  }
 
-	public List<Properties> retrieveAllCredentials(String username, String password, String portalUrl) {
-		List<Properties> credentailsCollection = new LinkedList<Properties>();
+  public List<Properties> retrieveAllCredentials(String username, String password, String portalUrl) {
+    List<Properties> credentailsCollection = new LinkedList<Properties>();
 
-		WebDriver driver = driverFactory.getDriver();
-		JavascriptExecutor js = driverFactory.getJavascriptExecutor();
+    WebDriver driver = driverFactory.getDriver();
+    JavascriptExecutor js = driverFactory.getJavascriptExecutor();
 
-		Wait<WebDriver> wait = new FluentWait<WebDriver>(driver).withTimeout(Duration.of(5L, ChronoUnit.SECONDS))
-				.pollingEvery(Duration.of(3, ChronoUnit.SECONDS)).ignoring(NoSuchElementException.class);
+    Wait<WebDriver> wait = new FluentWait<WebDriver>(driver).withTimeout(Duration.of(15L, ChronoUnit.SECONDS))
+        .pollingEvery(Duration.of(3, ChronoUnit.SECONDS))
+        .ignoring(NoSuchElementException.class, WebDriverException.class);
 
-		driver.get(portalUrl);
-		driver.manage().window().setSize(new Dimension(1401, 700));
+    driver.get(portalUrl);
+    driver.manage().window().setSize(new Dimension(1401, 700));
 
-		waitForPageReady(wait, js);
+    waitForPageReady(wait, js);
 
-		try {
-			wait.until(ExpectedConditions.presenceOfElementLocated(NEW_USERNAME_LOCATOR)).sendKeys(username);
-			driver.findElement(USERBNAME_SUBMIT_LOCATOR).click();
-			waitForPageReady(wait, js);
+    try {
+      wait.until(ExpectedConditions.presenceOfElementLocated(NEW_USERNAME_LOCATOR)).sendKeys(username);
+      driver.findElement(USERBNAME_SUBMIT_LOCATOR).click();
+      waitForPageReady(wait, js);
 
-			wait.until(ExpectedConditions.presenceOfElementLocated(NEW_PASSWORD_LOCATOR)).sendKeys(password);
-			driver.findElement(PASSWORD_SUBMIT_LOCATOR).click();
+      wait.until(ExpectedConditions.presenceOfElementLocated(NEW_PASSWORD_LOCATOR)).sendKeys(password);
+      driver.findElement(PASSWORD_SUBMIT_LOCATOR).click();
 
-			waitForPageReady(wait, js);
-		} catch (NoSuchElementException e) {
-			driver.findElement(PASSWORD_LOCATOR).sendKeys(password);
-			driver.findElement(LOGIN_BUTTON_LOCATOR).click();
-		}
-		
-		boolean appElementFound = true; 
-		try {
-			wait.until(ExpectedConditions.presenceOfElementLocated(APP_ELEMENT_LOCATOR));
-		} catch (Throwable t) {
-			appElementFound = false;
-		}
+      waitForPageReady(wait, js);
+    } catch (NoSuchElementException e) {
+      driver.findElement(PASSWORD_LOCATOR).sendKeys(password);
+      driver.findElement(LOGIN_BUTTON_LOCATOR).click();
+    }
 
-		try {
-			if (!appElementFound) {
-				String message = driver.findElement(ERROR_MESSAGE_LOCATOR).getText();
-				throw new ApplicationException(message);
-			} else {
-				driver.findElement(APP_ELEMENT_LOCATOR).click();
-				wait.until(isTrue(!driver.findElements(INSTANCE_BLOCKS_LOCATOR).isEmpty()));
+    boolean appElementFound = true;
+    try {
+      wait.until(ExpectedConditions.presenceOfElementLocated(APP_ELEMENT_LOCATOR));
+    } catch (Throwable t) {
+      appElementFound = false;
+    }
 
-				List<WebElement> instanceBlocks = driver.findElements(INSTANCE_BLOCKS_LOCATOR);
+    try {
+      if (!appElementFound) {
+        String message = driver.findElement(ERROR_MESSAGE_LOCATOR).getText();
+        throw new ApplicationException(message);
+      } else {
+        driver.findElement(APP_ELEMENT_LOCATOR).click();
+        wait.until(isTrue(!driver.findElements(INSTANCE_BLOCKS_LOCATOR).isEmpty()));
 
-				for (WebElement instanceBlock : instanceBlocks) {
-					instanceBlock.click();
+        List<WebElement> instanceBlocks = driver.findElements(INSTANCE_BLOCKS_LOCATOR);
 
-					pause(Duration.of(1L, ChronoUnit.SECONDS));
+        for (WebElement instanceBlock : instanceBlocks) {
+          instanceBlock.click();
 
-					wait.until(ExpectedConditions.presenceOfElementLocated(PROFILE_NAME_LOCATION));
-					wait.until(isTrue(!driver.findElements(CREDS_LINKS_LOCATOR).isEmpty()));
+          pause(Duration.of(1L, ChronoUnit.SECONDS));
 
-					List<WebElement> credsLinks = driver.findElements(CREDS_LINKS_LOCATOR);
+          wait.until(ExpectedConditions.presenceOfElementLocated(PROFILE_NAME_LOCATION));
+          wait.until(isTrue(!driver.findElements(CREDS_LINKS_LOCATOR).isEmpty()));
 
-					for (WebElement credsLink : credsLinks) {
-						credsLink.click();
+          List<WebElement> credsLinks = driver.findElements(CREDS_LINKS_LOCATOR);
 
-						wait.until(ExpectedConditions.presenceOfElementLocated(HOVER_COPY_LOCATOR)).click();
+          for (WebElement credsLink : credsLinks) {
+            credsLink.click();
 
-						String credentialsString = getClipboardContents();
+            wait.until(ExpectedConditions.presenceOfElementLocated(HOVER_COPY_LOCATOR)).click();
 
-						final Properties properties = convertToProperties(credentialsString);
-						credentailsCollection.add(properties);
+            String credentialsString = "";
 
-						driver.findElement(CLOSER_LOCATOR).click();
-					}
+            List<WebElement> codeLines = credsLink.findElements(CODE_LINK_LOCATOR);
 
-					instanceBlock.click();
-				}
-			}
-		} finally {
-			driver.close();
-			clearClipboard();
-		}
+            for (WebElement codeLine : codeLines) {
+              String text = codeLine.getText();
+              if (!text.startsWith("export") && !text.isBlank()) {
+                credentialsString = credentialsString + text + "\n";
+              }
+            }
 
-		return credentailsCollection;
-	}
+            final Properties properties = convertToProperties(credentialsString);
+            credentailsCollection.add(properties);
 
-	private void clearClipboard() {
-		clipboardFactory.clipboard().setContents(new Transferable() {
-		      public DataFlavor[] getTransferDataFlavors() {
-		        return new DataFlavor[0];
-		      }
+            driver.findElement(CLOSER_LOCATOR).click();
+          }
 
-		      public boolean isDataFlavorSupported(DataFlavor flavor) {
-		        return false;
-		      }
+          instanceBlock.click();
+        }
+      }
+    } finally {
+      driver.close();
+    }
 
-		      public Object getTransferData(DataFlavor flavor) throws UnsupportedFlavorException {
-		        throw new UnsupportedFlavorException(flavor);
-		      }}, null);
-	}
+    return credentailsCollection;
+  }
 
-	private Properties convertToProperties(String credentialsString) {
-		final Properties properties = new Properties();
-		try {
-			properties.load(new StringReader(credentialsString));
-		} catch (IOException e) {
-			throw new ApplicationException("Can not process credentials");
-		}
-		return properties;
-	}
+  private Properties convertToProperties(String credentialsString) {
+    final Properties properties = new Properties();
+    try {
+      properties.load(new StringReader(credentialsString));
+    } catch (IOException e) {
+      throw new ApplicationException("Can not process credentials");
+    }
+    return properties;
+  }
 
-	private String getClipboardContents() {
-		String credentialsString = null;
-		try {
-			credentialsString = (String) clipboardFactory.clipboard().getData(DataFlavor.stringFlavor);
-		} catch (HeadlessException | UnsupportedFlavorException | IOException e) {
-			throw new ApplicationException("Can not retrieve credentials from clipboard");
-		}
-		return credentialsString;
-	}
+  private Function<WebDriver, Boolean> isTrue(Boolean flag) {
+    return x -> flag;
+  }
 
-	private Function<WebDriver, Boolean> isTrue(Boolean flag) {
-		return x -> flag;
-	}
+  private void waitForPageReady(Wait<WebDriver> waiter, JavascriptExecutor js) {
+    waiter.until(isTrue(js.executeScript("return document.readyState").toString().equals("complete")));
+  }
 
-	private void waitForPageReady(Wait<WebDriver> waiter, JavascriptExecutor js) {
-		waiter.until(isTrue(js.executeScript("return document.readyState").toString().equals("complete")));
-	}
-
-	private void pause(Duration duration) {
-		try {
-			Thread.sleep(duration.toMillis());
-		} catch (InterruptedException e) {
-			throw new ApplicationException(e);
-		}
-	}
+  private void pause(Duration duration) {
+    try {
+      Thread.sleep(duration.toMillis());
+    } catch (InterruptedException e) {
+      throw new ApplicationException(e);
+    }
+  }
 }
